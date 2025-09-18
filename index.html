@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Cuenta regresiva - Simulacro 19S 2025 (CDMX / EDOMEX)</title>
+  <style>
+    :root{
+      --bg:#0f1724;
+      --card:#0b1220;
+      --accent:#8dd3ff;
+      --muted:#9aa6b2;
+    }
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;
+      background:
+        radial-gradient(1200px 600px at 10% 10%, rgba(141,211,255,0.06), transparent 10%),
+        linear-gradient(180deg,#071022 0%, #071822 100%);
+      color:#e6f0f6;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+    }
+
+    .card{
+      width:100%;
+      max-width:760px;
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:14px;
+      box-shadow: 0 8px 30px rgba(2,6,23,0.6);
+      padding:28px;
+      border:1px solid rgba(255,255,255,0.03);
+    }
+
+    header{display:flex;align-items:center;gap:16px;margin-bottom:12px}
+    .logo{
+      width:64px;height:64px;border-radius:10px;
+      background:linear-gradient(135deg,var(--accent),#6bb8ff);
+      display:flex;align-items:center;justify-content:center;color:#022230;font-weight:700;font-size:20px;
+      box-shadow:0 6px 18px rgba(13,27,40,0.6);
+    }
+    h1{font-size:20px;margin:0}
+    p.lead{margin:4px 0 0;color:var(--muted);font-size:14px}
+
+    .countdown{
+      display:grid;
+      grid-template-columns: repeat(4,1fr);
+      gap:12px;
+      margin-top:18px;
+    }
+
+    .unit{
+      background:var(--card);
+      border-radius:10px;
+      padding:16px;
+      text-align:center;
+      border:1px solid rgba(255,255,255,0.02);
+    }
+    .num{font-size:34px;font-weight:700;letter-spacing:0.6px}
+    .label{font-size:12px;color:var(--muted);margin-top:6px}
+
+    .meta{
+      margin-top:18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    }
+    .meta .tz{color:var(--muted);font-size:13px}
+    .controls{display:flex;gap:8px;align-items:center}
+    button{
+      background:transparent;border:1px solid rgba(255,255,255,0.06);
+      color:inherit;padding:8px 12px;border-radius:8px;cursor:pointer;
+      font-weight:600;
+    }
+    button.primary{background:var(--accent);color:#022230;border:none}
+    small.note{display:block;color:var(--muted);margin-top:10px;font-size:12px}
+
+    .finished{
+      margin-top:18px;background:rgba(139,187,255,0.06);padding:12px;border-radius:8px;color:var(--accent);
+      display:none;
+    }
+
+    @media (max-width:520px){
+      .countdown{grid-template-columns: repeat(2,1fr)}
+      .num{font-size:28px}
+    }
+  </style>
+</head>
+<body>
+  <div class="card" role="main">
+    <header>
+      <div class="logo">19S</div>
+      <div>
+        <h1>Cuenta regresiva — Simulacro 19 de septiembre 2025</h1>
+        <p class="lead">Se activará la alerta a las <strong>12:00</strong> (hora del Centro — CDMX / EDOMEX). Esta página calcula el tiempo restante en base al reloj del equipo.</p>
+      </div>
+    </header>
+
+    <div class="countdown" aria-live="polite" id="cd">
+      <div class="unit"><div class="num" id="days">0</div><div class="label">Días</div></div>
+      <div class="unit"><div class="num" id="hours">0</div><div class="label">Horas</div></div>
+      <div class="unit"><div class="num" id="minutes">0</div><div class="label">Minutos</div></div>
+      <div class="unit"><div class="num" id="seconds">0</div><div class="label">Segundos</div></div>
+    </div>
+
+    <div class="meta">
+      <div class="tz">
+        Zona objetivo: <strong>CDMX / EDOMEX (Hora del Centro)</strong> — Simulacro: <strong>19 sept 2025, 12:00</strong>.
+      </div>
+
+      <div class="controls">
+        <label style="display:flex;align-items:center;gap:8px">
+          <input type="checkbox" id="soundToggle" /> Sonido al llegar
+        </label>
+        <button id="shareBtn">Copiar enlace</button>
+        <button id="resetBtn">Resetear</button>
+      </div>
+    </div>
+
+    <small class="note">Si cierras la pestaña o apagas el navegador, la cuenta seguirá avanzando (se recalcula según el reloj del equipo cuando vuelvas). Si tu reloj del sistema está mal, la cuenta también lo estará.</small>
+
+    <div class="finished" id="finishMsg" role="status">
+      🔔 ¡Llegó la hora del simulacro! — Alerta programada para <strong>12:00 (Hora del Centro)</strong>.
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      // Objetivo: 19 Sep 2025 12:00 hora del Centro (CDMX / EDOMEX).
+      // Equivalente UTC: 2025-09-19T17:00:00Z (CDT = UTC-5 en esa fecha).
+      // Para evitar problemas de zona horaria, usamos la hora UTC correspondiente:
+      const targetUtcMs = Date.UTC(2025, 8, 19, 17, 0, 0); // meses: 0=ene -> 8 = sept
+
+      const daysEl = document.getElementById('days');
+      const hoursEl = document.getElementById('hours');
+      const minutesEl = document.getElementById('minutes');
+      const secondsEl = document.getElementById('seconds');
+      const finishMsg = document.getElementById('finishMsg');
+      const soundToggle = document.getElementById('soundToggle');
+
+      // persistencia de la preferencia de sonido
+      try {
+        const saved = localStorage.getItem('sim19s_sound');
+        if(saved === '1') soundToggle.checked = true;
+      } catch(e){ /* ignore */ }
+
+      soundToggle.addEventListener('change', () => {
+        try {
+          localStorage.setItem('sim19s_sound', soundToggle.checked ? '1' : '0');
+        } catch(e){}
+      });
+
+      document.getElementById('shareBtn').addEventListener('click', async () => {
+        const url = location.href;
+        try {
+          await navigator.clipboard.writeText(url);
+          alert('Enlace copiado: ' + url);
+        } catch(e){
+          prompt('Copia manualmente este enlace:', url);
+        }
+      });
+
+      document.getElementById('resetBtn').addEventListener('click', () => {
+        if(confirm('¿Restablecer preferencias (sonido)?')) {
+          try { localStorage.removeItem('sim19s_sound'); } catch(e){}
+          soundToggle.checked = false;
+        }
+      });
+
+      // Sonido simple usando WebAudio (no archivo externo)
+      let audioContext = null;
+      function playBeep(){
+        try {
+          if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          const ctx = audioContext;
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.type = 'sine';
+          o.frequency.setValueAtTime(880, ctx.currentTime);
+          g.gain.setValueAtTime(0.0001, ctx.currentTime);
+          g.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + 0.01);
+          o.connect(g);
+          g.connect(ctx.destination);
+          o.start();
+          o.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.4);
+          g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.8);
+          o.stop(ctx.currentTime + 0.85);
+        } catch(e){
+          // fallback: nada
+        }
+      }
+
+      function update(){
+        const now = Date.now();
+        const diff = targetUtcMs - now;
+
+        if(diff <= 0){
+          // terminado o en curso
+          daysEl.textContent = '0';
+          hoursEl.textContent = '0';
+          minutesEl.textContent = '0';
+          secondsEl.textContent = '0';
+          finishMsg.style.display = 'block';
+
+          // reproducir sonido UNA vez cuando acabe
+          if(!window._sim19s_played){
+            window._sim19s_played = true;
+            if(soundToggle.checked){
+              // algunos navegadores requieren gesto del usuario; si falla, no hace nada.
+              playBeep();
+            }
+          }
+          return;
+        }
+
+        finishMsg.style.display = 'none';
+
+        const s = Math.floor(diff / 1000);
+        const days = Math.floor(s / (3600*24));
+        const hours = Math.floor((s % (3600*24)) / 3600);
+        const minutes = Math.floor((s % 3600) / 60);
+        const seconds = Math.floor(s % 60);
+
+        daysEl.textContent = String(days);
+        hoursEl.textContent = String(hours).padStart(2,'0');
+        minutesEl.textContent = String(minutes).padStart(2,'0');
+        secondsEl.textContent = String(seconds).padStart(2,'0');
+      }
+
+      // Primero: actualizar ya
+      update();
+
+      // Actualizar cada 250ms (suaviza)
+      const interval = setInterval(update, 250);
+
+      // Si el usuario cambia la fecha/hora del sistema, la cuenta se ajusta automáticamente
+      // Nota: si cierras el navegador completamente, el script no corre; cuando vuelvas, recalculará con Date.now().
+
+      // Accessibility: announce remaining each minuto (opcional)
+      let lastAnnouncedMinute = null;
+      setInterval(() => {
+        const now = Date.now();
+        const diff = targetUtcMs - now;
+        if(diff <= 0) return;
+        const mins = Math.floor(diff/60000);
+        if(mins !== lastAnnouncedMinute && mins % 5 === 0){ // cada 5 minutos
+          lastAnnouncedMinute = mins;
+          // speak (si el navegador lo permite)
+          if('speechSynthesis' in window){
+            const msg = new SpeechSynthesisUtterance('Faltan ' + mins + ' minutos para el simulacro');
+            msg.lang = 'es-MX';
+            try { window.speechSynthesis.speak(msg); } catch(e){}
+          }
+        }
+      }, 1000*30);
+
+    })();
+  </script>
+</body>
+</html>
