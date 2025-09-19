@@ -125,136 +125,119 @@
   </div>
 
   <script>
-    (function(){
-      // Objetivo: 19 Sep 2025 12:00 hora del Centro (CDMX / EDOMEX).
-      // Equivalente UTC: 2025-09-19T17:00:00Z (CDT = UTC-5 en esa fecha).
-      // Para evitar problemas de zona horaria, usamos la hora UTC correspondiente:
-      const targetUtcMs = Date.UTC(2025, 8, 19, 17, 0, 0); // meses: 0=ene -> 8 = sept
+  (function(){
+    // Fecha objetivo: 19 sep 2025, 12:00 CDMX/EDOMEX (UTC-5)
+    const targetUtcMs = Date.UTC(2025, 8, 19, 17, 0, 0);
 
-      const daysEl = document.getElementById('days');
-      const hoursEl = document.getElementById('hours');
-      const minutesEl = document.getElementById('minutes');
-      const secondsEl = document.getElementById('seconds');
-      const finishMsg = document.getElementById('finishMsg');
-      const soundToggle = document.getElementById('soundToggle');
+    const daysEl = document.getElementById('days');
+    const hoursEl = document.getElementById('hours');
+    const minutesEl = document.getElementById('minutes');
+    const secondsEl = document.getElementById('seconds');
+    const finishMsg = document.getElementById('finishMsg');
+    const soundToggle = document.getElementById('soundToggle');
 
-      // persistencia de la preferencia de sonido
+    try {
+      const saved = localStorage.getItem('sim19s_sound');
+      if(saved === '1') soundToggle.checked = true;
+    } catch(e){}
+
+    soundToggle.addEventListener('change', () => {
       try {
-        const saved = localStorage.getItem('sim19s_sound');
-        if(saved === '1') soundToggle.checked = true;
-      } catch(e){ /* ignore */ }
+        localStorage.setItem('sim19s_sound', soundToggle.checked ? '1' : '0');
+      } catch(e){}
+    });
 
-      soundToggle.addEventListener('change', () => {
-        try {
-          localStorage.setItem('sim19s_sound', soundToggle.checked ? '1' : '0');
-        } catch(e){}
-      });
-
-      document.getElementById('shareBtn').addEventListener('click', async () => {
-        const url = location.href;
-        try {
-          await navigator.clipboard.writeText(url);
-          alert('Enlace copiado: ' + url);
-        } catch(e){
-          prompt('Copia manualmente este enlace:', url);
-        }
-      });
-
-      document.getElementById('resetBtn').addEventListener('click', () => {
-        if(confirm('¿Restablecer preferencias (sonido)?')) {
-          try { localStorage.removeItem('sim19s_sound'); } catch(e){}
-          soundToggle.checked = false;
-        }
-      });
-
-      // Sonido simple usando WebAudio (no archivo externo)
-      let audioContext = null;
-      function playBeep(){
-        try {
-          if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
-          const ctx = audioContext;
-          const o = ctx.createOscillator();
-          const g = ctx.createGain();
-          o.type = 'sine';
-          o.frequency.setValueAtTime(880, ctx.currentTime);
-          g.gain.setValueAtTime(0.0001, ctx.currentTime);
-          g.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + 0.01);
-          o.connect(g);
-          g.connect(ctx.destination);
-          o.start();
-          o.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.4);
-          g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.8);
-          o.stop(ctx.currentTime + 0.85);
-        } catch(e){
-          // fallback: nada
-        }
+    document.getElementById('shareBtn').addEventListener('click', async () => {
+      const url = location.href;
+      try {
+        await navigator.clipboard.writeText(url);
+        alert('Enlace copiado: ' + url);
+      } catch(e){
+        prompt('Copia manualmente este enlace:', url);
       }
+    });
 
-      function update(){
-        const now = Date.now();
-        const diff = targetUtcMs - now;
-
-        if(diff <= 0){
-          // terminado o en curso
-          daysEl.textContent = '0';
-          hoursEl.textContent = '0';
-          minutesEl.textContent = '0';
-          secondsEl.textContent = '0';
-          finishMsg.style.display = 'block';
-
-          // reproducir sonido UNA vez cuando acabe
-          if(!window._sim19s_played){
-            window._sim19s_played = true;
-            if(soundToggle.checked){
-              // algunos navegadores requieren gesto del usuario; si falla, no hace nada.
-              playBeep();
-            }
-          }
-          return;
-        }
-
-        finishMsg.style.display = 'none';
-
-        const s = Math.floor(diff / 1000);
-        const days = Math.floor(s / (3600*24));
-        const hours = Math.floor((s % (3600*24)) / 3600);
-        const minutes = Math.floor((s % 3600) / 60);
-        const seconds = Math.floor(s % 60);
-
-        daysEl.textContent = String(days);
-        hoursEl.textContent = String(hours).padStart(2,'0');
-        minutesEl.textContent = String(minutes).padStart(2,'0');
-        secondsEl.textContent = String(seconds).padStart(2,'0');
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      if(confirm('¿Restablecer preferencias (sonido)?')) {
+        try { localStorage.removeItem('sim19s_sound'); } catch(e){}
+        soundToggle.checked = false;
       }
+    });
 
-      // Primero: actualizar ya
-      update();
+    let audioContext = null;
+    function playBeep(){
+      try {
+        if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const ctx = audioContext;
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(880, ctx.currentTime);
+        g.gain.setValueAtTime(0.0001, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + 0.01);
+        o.connect(g);
+        g.connect(ctx.destination);
+        o.start();
+        o.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.4);
+        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.8);
+        o.stop(ctx.currentTime + 0.85);
+      } catch(e){}
+    }
 
-      // Actualizar cada 250ms (suaviza)
-      const interval = setInterval(update, 250);
+    function update(){
+      const nowUtcMs = Date.now() + (new Date().getTimezoneOffset() * 60000);
+      const diff = targetUtcMs - nowUtcMs;
 
-      // Si el usuario cambia la fecha/hora del sistema, la cuenta se ajusta automáticamente
-      // Nota: si cierras el navegador completamente, el script no corre; cuando vuelvas, recalculará con Date.now().
+      if(diff <= 0){
+        daysEl.textContent = '0';
+        hoursEl.textContent = '0';
+        minutesEl.textContent = '0';
+        secondsEl.textContent = '0';
+        finishMsg.style.display = 'block';
 
-      // Accessibility: announce remaining each minuto (opcional)
-      let lastAnnouncedMinute = null;
-      setInterval(() => {
-        const now = Date.now();
-        const diff = targetUtcMs - now;
-        if(diff <= 0) return;
-        const mins = Math.floor(diff/60000);
-        if(mins !== lastAnnouncedMinute && mins % 5 === 0){ // cada 5 minutos
-          lastAnnouncedMinute = mins;
-          // speak (si el navegador lo permite)
-          if('speechSynthesis' in window){
-            const msg = new SpeechSynthesisUtterance('Faltan ' + mins + ' minutos para el simulacro');
-            msg.lang = 'es-MX';
-            try { window.speechSynthesis.speak(msg); } catch(e){}
+        if(!window._sim19s_played){
+          window._sim19s_played = true;
+          if(soundToggle.checked){
+            playBeep();
           }
         }
-      }, 1000*30);
+        return;
+      }
 
-    })();
+      finishMsg.style.display = 'none';
+
+      const s = Math.floor(diff / 1000);
+      const days = Math.floor(s / (3600*24));
+      const hours = Math.floor((s % (3600*24)) / 3600);
+      const minutes = Math.floor((s % 3600) / 60);
+      const seconds = Math.floor(s % 60);
+
+      daysEl.textContent = String(days);
+      hoursEl.textContent = String(hours).padStart(2,'0');
+      minutesEl.textContent = String(minutes).padStart(2,'0');
+      secondsEl.textContent = String(seconds).padStart(2,'0');
+    }
+
+    update();
+    setInterval(update, 1000);
+
+    let lastAnnouncedMinute = null;
+    setInterval(() => {
+      const nowUtcMs = Date.now() + (new Date().getTimezoneOffset() * 60000);
+      const diff = targetUtcMs - nowUtcMs;
+      if(diff <= 0) return;
+      const mins = Math.floor(diff/60000);
+      if(mins !== lastAnnouncedMinute && mins % 5 === 0){
+        lastAnnouncedMinute = mins;
+        if('speechSynthesis' in window){
+          const msg = new SpeechSynthesisUtterance('Faltan ' + mins + ' minutos para el simulacro');
+          msg.lang = 'es-MX';
+          try { window.speechSynthesis.speak(msg); } catch(e){}
+        }
+      }
+    }, 30000);
+
+  })();
   </script>
 </body>
 </html>
